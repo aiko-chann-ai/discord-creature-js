@@ -23,42 +23,24 @@
             position: absolute;
             top: 0;
             left: 0;
-            will-change: transform;
-            transform: translateZ(0);
         }
     </style>
 </head>
 <body>
 <script>
 // ============================================================
-// MOBILE DETECTION
-// ============================================================
-var screenWidth = window.innerWidth;
-var sizeMultiplier = 1;
-
-if (screenWidth <= 480) {
-    sizeMultiplier = 0.5;
-} else if (screenWidth <= 768) {
-    sizeMultiplier = 0.65;
-} else if (screenWidth <= 1024) {
-    sizeMultiplier = 0.85;
-} else {
-    sizeMultiplier = 1;
-}
-
-// ============================================================
-// AUTO-MOVEMENT SYSTEM
+// AUTO-MOVEMENT SYSTEM (Replaces cursor)
 // ============================================================
 var AutoPath = {
     targetX: 0,
     targetY: 0,
     changeTime: 3000,
     lastChange: Date.now(),
-    margin: screenWidth <= 768 ? 80 : 120,
+    margin: 120,
     
     init: function() {
         this.targetX = window.innerWidth / 2;
-        this.targetY = window.innerHeight / 3;
+        this.targetY = window.innerHeight / 2;
     },
     
     getTarget: function() {
@@ -74,7 +56,7 @@ var AutoPath = {
 };
 
 // ============================================================
-// INPUT SYSTEM
+// ORIGINAL INPUT SYSTEM (kept for compatibility)
 // ============================================================
 var Input = {
   keys: [],
@@ -105,7 +87,7 @@ document.addEventListener("mousemove", function(event) {
 });
 
 // ============================================================
-// CANVAS SETUP WITH MOBILE OPTIMIZATION
+// CANVAS SETUP (ORIGINAL)
 // ============================================================
 var canvas = document.createElement("canvas");
 document.body.appendChild(canvas);
@@ -115,23 +97,13 @@ canvas.style.position = "absolute";
 canvas.style.left = "0px";
 canvas.style.top = "0px";
 canvas.style.backgroundColor = "black";
-
-// Mobile optimization
-canvas.style.willChange = 'transform';
-canvas.style.transform = 'translateZ(0)';
+document.body.style.overflow = "hidden";
 
 var ctx = canvas.getContext("2d");
 ctx.strokeStyle = "white";
-ctx.lineWidth = 1;
-
-// Window resize handler
-window.addEventListener('resize', function() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-});
 
 // ============================================================
-// SEGMENT CLASS
+// SEGMENT CLASS (ORIGINAL - NO CHANGES)
 // ============================================================
 var segmentCount = 0;
 class Segment {
@@ -200,7 +172,7 @@ class Segment {
 }
 
 // ============================================================
-// LIMB SYSTEM CLASS
+// LIMB SYSTEM CLASS (ORIGINAL - NO CHANGES)
 // ============================================================
 class LimbSystem {
   constructor(end, length, speed, creature) {
@@ -253,7 +225,7 @@ class LimbSystem {
 }
 
 // ============================================================
-// LEG SYSTEM CLASS
+// LEG SYSTEM CLASS (ORIGINAL - NO CHANGES)
 // ============================================================
 class LegSystem extends LimbSystem {
   constructor(end, length, speed, creature) {
@@ -293,7 +265,7 @@ class LegSystem extends LimbSystem {
 }
 
 // ============================================================
-// CREATURE CLASS
+// CREATURE CLASS (ORIGINAL - NO CHANGES)
 // ============================================================
 class Creature {
   constructor(x, y, angle, fAccel, fFric, fRes, fThresh, rAccel, rFric, rRes, rThresh) {
@@ -369,18 +341,27 @@ class Creature {
 }
 
 // ============================================================
-// SETUP LIZARD (10 LEGS FIXED)
+// SETUP LIZARD - ORIGINAL VALUES (10 legs fixed)
 // ============================================================
 var critter;
 function setupLizard(size, legs, tail) {
   var s = size;
-  var startX = window.innerWidth / 2;
-  var startY = Math.min(window.innerHeight / 2, window.innerHeight * 0.4);
-  
-  critter = new Creature(startX, startY, 0, s * 10, s * 2, 0.5, 16, 0.5, 0.085, 0.5, 0.3);
+  critter = new Creature(
+    window.innerWidth / 2,
+    window.innerHeight / 2,
+    0,
+    s * 10,
+    s * 2,
+    0.5,
+    16,
+    0.5,
+    0.085,
+    0.5,
+    0.3
+  );
   var spinal = critter;
   
-  // Neck
+  // Neck - ORIGINAL VALUES
   for (var i = 0; i < 6; i++) {
     spinal = new Segment(spinal, s * 4, 0, 3.1415 * 2 / 3, 1.1);
     for (var ii = -1; ii <= 1; ii += 2) {
@@ -391,7 +372,7 @@ function setupLizard(size, legs, tail) {
     }
   }
   
-  // Torso and legs
+  // Torso and legs - ORIGINAL VALUES
   for (var i = 0; i < legs; i++) {
     if (i > 0) {
       for (var ii = 0; ii < 6; ii++) {
@@ -415,7 +396,7 @@ function setupLizard(size, legs, tail) {
     }
   }
   
-  // Tail
+  // Tail - ORIGINAL VALUES
   for (var i = 0; i < tail; i++) {
     spinal = new Segment(spinal, s * 4, 0, 3.1415 * 2 / 3, 1.1);
     for (var ii = -1; ii <= 1; ii += 2) {
@@ -430,7 +411,7 @@ function setupLizard(size, legs, tail) {
 }
 
 // ============================================================
-// ANIMATION FUNCTION - ALWAYS RUNNING
+// ANIMATION LOOP
 // ============================================================
 var animationId = null;
 
@@ -459,7 +440,43 @@ function stopAnimation() {
 }
 
 // ============================================================
-// PAGE VISIBILITY - RESTART ANIMATION PROPERLY
+// WINDOW RESIZE - ADJUST POSITION
+// ============================================================
+var lastWidth = window.innerWidth;
+var lastHeight = window.innerHeight;
+
+window.addEventListener('resize', function() {
+    var newWidth = window.innerWidth;
+    var newHeight = window.innerHeight;
+    
+    if (critter) {
+        var widthRatio = newWidth / lastWidth;
+        var heightRatio = newHeight / lastHeight;
+        
+        critter.x = critter.x * widthRatio;
+        critter.y = critter.y * heightRatio;
+        
+        AutoPath.targetX = AutoPath.targetX * widthRatio;
+        AutoPath.targetY = AutoPath.targetY * heightRatio;
+        
+        for (var i = 0; i < critter.children.length; i++) {
+            critter.children[i].updateRelative(true, true);
+        }
+    }
+    
+    canvas.width = newWidth;
+    canvas.height = newHeight;
+    
+    lastWidth = newWidth;
+    lastHeight = newHeight;
+    
+    if (critter && !animationId) {
+        startAnimation();
+    }
+});
+
+// ============================================================
+// PAGE VISIBILITY
 // ============================================================
 document.addEventListener('visibilitychange', function() {
     if (!document.hidden && critter) {
@@ -469,22 +486,12 @@ document.addEventListener('visibilitychange', function() {
     }
 });
 
-// ============================================================
-// PAGE FOCUS/BLUR - KEEP ANIMATION RUNNING
-// ============================================================
 window.addEventListener('focus', function() {
     if (critter && !animationId) {
         startAnimation();
     }
 });
 
-window.addEventListener('blur', function() {
-    // Don't stop on blur for mobile - only on visibility change
-});
-
-// ============================================================
-// TOUCH EVENT - ENSURE ANIMATION CONTINUES
-// ============================================================
 document.addEventListener('touchstart', function(e) {
     if (critter && !animationId) {
         startAnimation();
@@ -492,33 +499,13 @@ document.addEventListener('touchstart', function(e) {
 }, { passive: true });
 
 // ============================================================
-// WINDOW RESIZE - MAINTAIN ANIMATION
-// ============================================================
-window.addEventListener('resize', function() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    if (critter && !animationId) {
-        startAnimation();
-    }
-});
-
-// ============================================================
-// INITIALIZE - FIXED 10 LEGS
+// INITIALIZE - 10 LEGS
 // ============================================================
 var legNum = 10;
 var tailNum = 80;
 
-setupLizard(2.5 * sizeMultiplier, legNum, tailNum);
-
-// START ANIMATION IMMEDIATELY
+setupLizard(2.5, legNum, tailNum);
 startAnimation();
-
-// FORCE FIRST DRAW
-if (critter) {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    var target = AutoPath.getTarget();
-    critter.follow(target.x, target.y);
-}
 </script>
 </body>
 </html>
