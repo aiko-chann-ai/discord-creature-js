@@ -430,40 +430,39 @@ function setupLizard(size, legs, tail) {
 }
 
 // ============================================================
-// ANIMATION FUNCTION (requestAnimationFrame)
+// ANIMATION FUNCTION - ALWAYS RUNNING
 // ============================================================
-var animationRunning = false;
+var animationId = null;
 
 function animate() {
-  if (!critter || !animationRunning) return;
+  if (!critter) return;
   
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   var target = AutoPath.getTarget();
   critter.follow(target.x, target.y);
   
-  requestAnimationFrame(animate);
+  animationId = requestAnimationFrame(animate);
 }
 
 function startAnimation() {
-  if (!animationRunning) {
-    animationRunning = true;
-    animate();
+  if (animationId) {
+    cancelAnimationFrame(animationId);
   }
+  animate();
 }
 
 function stopAnimation() {
-  animationRunning = false;
+  if (animationId) {
+    cancelAnimationFrame(animationId);
+    animationId = null;
+  }
 }
 
 // ============================================================
-// MOBILE FIX: VISIBILITY CHANGE LISTENER
+// PAGE VISIBILITY - RESTART ANIMATION PROPERLY
 // ============================================================
 document.addEventListener('visibilitychange', function() {
     if (!document.hidden && critter) {
-        // Page visible again - redraw and restart
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        var target = AutoPath.getTarget();
-        critter.follow(target.x, target.y);
         startAnimation();
     } else {
         stopAnimation();
@@ -471,52 +470,37 @@ document.addEventListener('visibilitychange', function() {
 });
 
 // ============================================================
-// MOBILE FIX: PAGE FOCUS/BLUR LISTENERS
+// PAGE FOCUS/BLUR - KEEP ANIMATION RUNNING
 // ============================================================
 window.addEventListener('focus', function() {
-    if (critter) {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        var target = AutoPath.getTarget();
-        critter.follow(target.x, target.y);
+    if (critter && !animationId) {
         startAnimation();
     }
 });
 
 window.addEventListener('blur', function() {
-    stopAnimation();
+    // Don't stop on blur for mobile - only on visibility change
 });
 
 // ============================================================
-// MOBILE FIX: TOUCH/SCROLL REDRAW
+// TOUCH EVENT - ENSURE ANIMATION CONTINUES
 // ============================================================
-var lastTouchDraw = Date.now();
 document.addEventListener('touchstart', function(e) {
-    if (critter && Date.now() - lastTouchDraw > 100) {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        var target = AutoPath.getTarget();
-        critter.follow(target.x, target.y);
-        lastTouchDraw = Date.now();
-        if (!animationRunning) {
-            startAnimation();
-        }
+    if (critter && !animationId) {
+        startAnimation();
     }
 }, { passive: true });
 
 // ============================================================
-// MOBILE FIX: SCROLL REDRAW
+// WINDOW RESIZE - MAINTAIN ANIMATION
 // ============================================================
-var lastScrollDraw = Date.now();
-window.addEventListener('scroll', function() {
-    if (critter && Date.now() - lastScrollDraw > 100) {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        var target = AutoPath.getTarget();
-        critter.follow(target.x, target.y);
-        lastScrollDraw = Date.now();
-        if (!animationRunning) {
-            startAnimation();
-        }
+window.addEventListener('resize', function() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    if (critter && !animationId) {
+        startAnimation();
     }
-}, { passive: true });
+});
 
 // ============================================================
 // INITIALIZE - FIXED 10 LEGS
@@ -526,15 +510,15 @@ var tailNum = 80;
 
 setupLizard(2.5 * sizeMultiplier, legNum, tailNum);
 
-// IMMEDIATE FIRST DRAW
+// START ANIMATION IMMEDIATELY
+startAnimation();
+
+// FORCE FIRST DRAW
 if (critter) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     var target = AutoPath.getTarget();
     critter.follow(target.x, target.y);
 }
-
-// START ANIMATION
-startAnimation();
 </script>
 </body>
 </html>
